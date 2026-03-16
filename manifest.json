@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "WhatsApp Chooser",
+  "version": "1.0",
+  "description": "Scegli tra WhatsApp e WhatsApp Business quando apri un link WhatsApp",
+  "permissions": [
+    "webNavigation",
+    "nativeMessaging"
+  ],
+  "host_permissions": [
+    "https://wa.me/*",
+    "https://api.whatsapp.com/*",
+    "https://web.whatsapp.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["chooser.html", "chooser.css", "chooser.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}
