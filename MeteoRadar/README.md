@@ -10,8 +10,10 @@ public API (no API key required).
 - **Animated timeline** combining past observations and short-term nowcast
   forecast frames.
 - **Play / pause** the animation, or scrub through frames with a slider.
-- **"Locate me"** button to center the map on your current position.
-- Clear label distinguishing *Observation* (past) from *Prévision* (forecast).
+- **Centers on your location** at launch (with a "locate me" button to re-center);
+  falls back to a world view if location access is denied.
+- **Precipitation-intensity legend** (light → heavy).
+- Clear label distinguishing *Observed* (past) from *Forecast* (nowcast).
 
 ## Requirements
 
@@ -34,6 +36,7 @@ semi-transparent `MKTileOverlay`.
 | --- | --- |
 | `MeteoRadarApp.swift` | App entry point. |
 | `ContentView.swift` | Main screen: map + playback controls. |
+| `IntensityLegend.swift` | Precipitation-intensity color legend. |
 | `RadarMapView.swift` | `UIViewRepresentable` wrapping `MKMapView` with the radar tile overlay. |
 | `RadarViewModel.swift` | Loads frames, owns playback state, builds tile URL templates. |
 | `RainViewerService.swift` | Networking against the RainViewer API. |

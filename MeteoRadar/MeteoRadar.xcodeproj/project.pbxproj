@@ -14,6 +14,7 @@
 		CCCCCCCCCCCCCCCCCCCC0140 /* RainViewerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBBBBBBBBBBBBBBBBBB0140 /* RainViewerService.swift */; };
 		CCCCCCCCCCCCCCCCCCCC0150 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBBBBBBBBBBBBBBBBBB0150 /* Models.swift */; };
 		CCCCCCCCCCCCCCCCCCCC0160 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBBBBBBBBBBBBBBBBBB0160 /* LocationManager.swift */; };
+		CCCCCCCCCCCCCCCCCCCC0180 /* IntensityLegend.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBBBBBBBBBBBBBBBBBB0180 /* IntensityLegend.swift */; };
 		CCCCCCCCCCCCCCCCCCCC0170 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BBBBBBBBBBBBBBBBBBBB0170 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -26,6 +27,7 @@
 		BBBBBBBBBBBBBBBBBBBB0140 /* RainViewerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RainViewerService.swift; sourceTree = "<group>"; };
 		BBBBBBBBBBBBBBBBBBBB0150 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		BBBBBBBBBBBBBBBBBBBB0160 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
+		BBBBBBBBBBBBBBBBBBBB0180 /* IntensityLegend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntensityLegend.swift; sourceTree = "<group>"; };
 		BBBBBBBBBBBBBBBBBBBB0170 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -66,6 +68,7 @@
 				BBBBBBBBBBBBBBBBBBBB0140 /* RainViewerService.swift */,
 				BBBBBBBBBBBBBBBBBBBB0150 /* Models.swift */,
 				BBBBBBBBBBBBBBBBBBBB0160 /* LocationManager.swift */,
+				BBBBBBBBBBBBBBBBBBBB0180 /* IntensityLegend.swift */,
 				BBBBBBBBBBBBBBBBBBBB0170 /* Assets.xcassets */,
 			);
 			path = MeteoRadar;
@@ -147,6 +150,7 @@
 				CCCCCCCCCCCCCCCCCCCC0140 /* RainViewerService.swift in Sources */,
 				CCCCCCCCCCCCCCCCCCCC0150 /* Models.swift in Sources */,
 				CCCCCCCCCCCCCCCCCCCC0160 /* LocationManager.swift in Sources */,
+				CCCCCCCCCCCCCCCCCCCC0180 /* IntensityLegend.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -218,7 +222,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Votre position permet de centrer la carte radar sur l'endroit où vous vous trouvez.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Your location is used to center the radar map on where you are.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -246,7 +250,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Votre position permet de centrer la carte radar sur l'endroit où vous vous trouvez.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Your location is used to center the radar map on where you are.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

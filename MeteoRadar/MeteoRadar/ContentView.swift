@@ -5,10 +5,11 @@ struct ContentView: View {
     @StateObject private var viewModel = RadarViewModel()
     @StateObject private var locationManager = LocationManager()
 
-    // Default view: Western Europe, centered on France.
+    // Wide fallback view used until the user's location is available
+    // (or if location access is denied).
     @State private var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 46.6, longitude: 2.2),
-        span: MKCoordinateSpan(latitudeDelta: 10, longitudeDelta: 10)
+        center: CLLocationCoordinate2D(latitude: 30, longitude: 0),
+        span: MKCoordinateSpan(latitudeDelta: 90, longitudeDelta: 90)
     )
 
     var body: some View {
@@ -19,13 +20,18 @@ struct ContentView: View {
             controls
 
             if viewModel.isLoading && viewModel.frames.isEmpty {
-                ProgressView("Chargement du radar…")
+                ProgressView("Loading radar…")
                     .padding(20)
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
             }
         }
         .overlay(alignment: .topTrailing) { locateButton }
-        .task { await viewModel.load() }
+        .overlay(alignment: .topLeading) { IntensityLegend() }
+        .task {
+            // Center on the user as soon as the app launches.
+            locationManager.requestLocation()
+            await viewModel.load()
+        }
         .onChange(of: locationManager.coordinate?.latitude) { _ in
             if let coordinate = locationManager.coordinate {
                 region = MKCoordinateRegion(
@@ -34,8 +40,8 @@ struct ContentView: View {
                 )
             }
         }
-        .alert("Erreur", isPresented: errorBinding) {
-            Button("Réessayer") { Task { await viewModel.load() } }
+        .alert("Error", isPresented: errorBinding) {
+            Button("Retry") { Task { await viewModel.load() } }
             Button("OK", role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage ?? "")
@@ -64,7 +70,7 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(timestampText)
                         .font(.title3.monospacedDigit().weight(.semibold))
-                    Text(viewModel.isForecastFrame ? "Prévision" : "Observation")
+                    Text(viewModel.isForecastFrame ? "Forecast" : "Observed")
                         .font(.caption)
                         .foregroundStyle(viewModel.isForecastFrame ? .orange : .green)
                 }
@@ -95,7 +101,7 @@ struct ContentView: View {
                 )
             }
 
-            Text("Données radar © RainViewer · OpenStreetMap")
+            Text("Radar data © RainViewer · OpenStreetMap")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -111,7 +117,7 @@ struct ContentView: View {
         guard let date = viewModel.currentFrame?.date else { return "—" }
         let formatter = DateFormatter()
         formatter.dateFormat = "EEE HH:mm"
-        return formatter.string(from: date).capitalized
+        return formatter.string(from: date)
     }
 
     private var errorBinding: Binding<Bool> {

@@ -45,7 +45,7 @@ final class RadarViewModel: ObservableObject {
             // Start on the most recent observation.
             currentIndex = max(0, maps.radar.past.count - 1)
         } catch {
-            errorMessage = "Impossible de charger le radar. Vérifiez votre connexion puis réessayez."
+            errorMessage = "Couldn't load the radar. Check your connection and try again."
         }
         isLoading = false
     }
