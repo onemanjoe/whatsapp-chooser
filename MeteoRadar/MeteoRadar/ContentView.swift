@@ -52,6 +52,13 @@ struct ContentView: View {
 
     private var locateButton: some View {
         Button {
+            // Re-center immediately if we already have a fix, then refresh it.
+            if let coordinate = locationManager.coordinate {
+                region = MKCoordinateRegion(
+                    center: coordinate,
+                    span: MKCoordinateSpan(latitudeDelta: 3, longitudeDelta: 3)
+                )
+            }
             locationManager.requestLocation()
         } label: {
             Image(systemName: "location.fill")

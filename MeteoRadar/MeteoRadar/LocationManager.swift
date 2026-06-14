@@ -16,7 +16,11 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         case .notDetermined:
             manager.requestWhenInUseAuthorization()
         case .authorizedWhenInUse, .authorizedAlways:
-            manager.requestLocation()
+            // Use continuous updates rather than a one-shot request: in the
+            // Simulator a location often isn't available the instant the button
+            // is tapped, and `requestLocation()` would simply fail. With
+            // `startUpdatingLocation` we get the fix as soon as one appears.
+            manager.startUpdatingLocation()
         default:
             break
         }
@@ -25,12 +29,14 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         if manager.authorizationStatus == .authorizedWhenInUse
             || manager.authorizationStatus == .authorizedAlways {
-            manager.requestLocation()
+            manager.startUpdatingLocation()
         }
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
+        // One fix is enough to center the map; stop to save battery.
+        manager.stopUpdatingLocation()
         Task { @MainActor in self.coordinate = location.coordinate }
     }
 
