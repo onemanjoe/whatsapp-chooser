@@ -21,13 +21,15 @@ When you click a WhatsApp link (`wa.me/...`, `api.whatsapp.com/send?...`), the e
 
 ```bash
 cd whatsapp-chooser/native-host
-./install.sh YOUR_EXTENSION_ID
+./install.sh
 ```
 
 The installer will:
 - Ask you the name of your WhatsApp apps (as they appear in `/Applications`)
 - Compile the native messaging host
 - Register it with Chrome
+
+The script uses the official extension ID by default. If you're developing locally with a different ID, pass it as an argument: `./install.sh YOUR_EXTENSION_ID`
 
 > **Note:** You need Xcode Command Line Tools installed. If you don't have them, run `xcode-select --install`.
 

@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
   "name": "WhatsApp Chooser",
-  "version": "1.0",
-  "description": "Scegli tra WhatsApp e WhatsApp Business quando apri un link WhatsApp",
+  "version": "1.1",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxU6vYFCvXlHc/XlX0N3i/yM3/58tIMFIhemOZ80JsaPTxgIEZr2NsjKZ0DcpPSbI8L0IiDOnLiYvc7+i8eNdH8XZWbcOqS+G0ovxXk+w+XTrvGEmZwoEvSo9++Ydq77FBnfPFPCILaJ1nbNqtMYGsaZQukaSxPJUKxIoBBIU+L1pnpqrYavD3Ttb7cdx3xsGqXqf7gq7EIXW4oXOYYbrNVQ27eO81g2ROPWfGuHB2ONo0TItY9KNBqm/rqhiBE+BlMphy/SSDV66UaeqSycvKyyIjJw6oKNxWd32H9nBJhkyLYqPQQnJ6ScvXOhkZdzA5Sz7waqCOCeKdrnNgEL17wIDAQAB",
+  "description": "Choose between WhatsApp and WhatsApp Business when opening a WhatsApp link",
   "permissions": [
     "webNavigation",
     "nativeMessaging"

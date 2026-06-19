@@ -3,27 +3,17 @@
 # Installa il native messaging host per WhatsApp Chooser.
 #
 # Uso:
-#   ./install.sh EXTENSION_ID
+#   ./install.sh [EXTENSION_ID]
 #
-# L'EXTENSION_ID lo trovi in chrome://extensions dopo aver caricato l'estensione.
+# Se non specifichi l'ID, usa quello ufficiale del Chrome Web Store.
 #
 
 set -e
 
-if [ -z "$1" ]; then
-  echo ""
-  echo "  Uso: ./install.sh EXTENSION_ID"
-  echo ""
-  echo "  Per trovare l'EXTENSION_ID:"
-  echo "  1. Apri chrome://extensions"
-  echo "  2. Attiva 'Modalita sviluppatore' in alto a destra"
-  echo "  3. Carica l'estensione con 'Carica estensione non pacchettizzata'"
-  echo "  4. Copia l'ID mostrato sotto il nome dell'estensione"
-  echo ""
-  exit 1
-fi
-
-EXTENSION_ID="$1"
+# Official Chrome Web Store extension ID — same for all users who install from the store.
+STORE_EXTENSION_ID="fcpdhjmkmoodeapmnfbiofoibpklaicn"
+# Extra ID passed as an argument (e.g. an unpacked dev install with a different ID).
+EXTRA_EXTENSION_ID="$1"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 HOST_SRC="$SCRIPT_DIR/host.c"
 HOST_BIN="$SCRIPT_DIR/host"
@@ -73,6 +63,13 @@ xattr -cr "$HOST_BIN" 2>/dev/null || true
 # Create target directory if it doesn't exist
 mkdir -p "$TARGET_DIR"
 
+# Build allowed_origins entries — always include the store ID, plus any extra dev ID.
+ALLOWED_ORIGINS="    \"chrome-extension://$STORE_EXTENSION_ID/\""
+if [ -n "$EXTRA_EXTENSION_ID" ] && [ "$EXTRA_EXTENSION_ID" != "$STORE_EXTENSION_ID" ]; then
+  ALLOWED_ORIGINS="$ALLOWED_ORIGINS,
+    \"chrome-extension://$EXTRA_EXTENSION_ID/\""
+fi
+
 # Write the native messaging host manifest
 cat > "$TARGET_DIR/$MANIFEST_NAME.json" <<EOF
 {
@@ -81,7 +78,7 @@ cat > "$TARGET_DIR/$MANIFEST_NAME.json" <<EOF
   "path": "$HOST_BIN",
   "type": "stdio",
   "allowed_origins": [
-    "chrome-extension://$EXTENSION_ID/"
+$ALLOWED_ORIGINS
   ]
 }
 EOF
@@ -89,9 +86,12 @@ EOF
 echo ""
 echo "  Installazione completata!"
 echo ""
-echo "  Manifest:  $TARGET_DIR/$MANIFEST_NAME.json"
-echo "  Host:      $HOST_BIN"
-echo "  Extension: $EXTENSION_ID"
+echo "  Manifest:    $TARGET_DIR/$MANIFEST_NAME.json"
+echo "  Host:        $HOST_BIN"
+echo "  Store ID:    $STORE_EXTENSION_ID"
+if [ -n "$EXTRA_EXTENSION_ID" ] && [ "$EXTRA_EXTENSION_ID" != "$STORE_EXTENSION_ID" ]; then
+  echo "  Extra ID:    $EXTRA_EXTENSION_ID"
+fi
 echo ""
 echo "  Riavvia Chrome per attivare il native messaging."
 echo ""
