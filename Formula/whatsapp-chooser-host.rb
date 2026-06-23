@@ -2,7 +2,7 @@ class WhatsappChooserHost < Formula
   desc "Native messaging host for the WhatsApp Chooser Chrome extension"
   homepage "https://github.com/onemanjoe/whatsapp-chooser"
   url "https://github.com/onemanjoe/whatsapp-chooser/archive/refs/tags/v1.2.tar.gz"
-  sha256 "REPLACE_WITH_TARBALL_SHA256"
+  sha256 "11012dd3e3d6b95efc4c26aded78ad7593786d05d7714722815f0745b1eaa490"
   license "MIT"
 
   depends_on :macos
