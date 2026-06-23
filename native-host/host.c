@@ -27,26 +27,11 @@ char* json_get(const char *json, const char *key) {
     return result;
 }
 
-// Load config.json from same directory as the binary
-// Returns 1 on success, 0 on failure
-int load_config(const char *argv0, char *whatsapp_app, char *business_app, size_t bufsize) {
-    // Default values
-    strncpy(whatsapp_app, "WhatsApp", bufsize);
-    strncpy(business_app, "WhatsApp Business", bufsize);
-
-    // Build path to config.json next to the binary
-    char config_path[2048];
-
-    // Try /proc/self/exe first (Linux), then argv[0]
-    char exe_dir[2048];
-    strncpy(exe_dir, argv0, sizeof(exe_dir) - 1);
-    exe_dir[sizeof(exe_dir) - 1] = '\0';
-    char *dir = dirname(exe_dir);
-
-    snprintf(config_path, sizeof(config_path), "%s/config.json", dir);
-
-    FILE *f = fopen(config_path, "r");
-    if (!f) return 0; // No config file, use defaults
+// Parse a config.json at `path` into whatsapp_app/business_app.
+// Returns 1 if the file was read, 0 if it couldn't be opened.
+int parse_config_file(const char *path, char *whatsapp_app, char *business_app, size_t bufsize) {
+    FILE *f = fopen(path, "r");
+    if (!f) return 0;
 
     char buf[4096];
     size_t n = fread(buf, 1, sizeof(buf) - 1, f);
@@ -56,14 +41,43 @@ int load_config(const char *argv0, char *whatsapp_app, char *business_app, size_
     char *val;
 
     val = json_get(buf, "whatsapp_app");
-    if (strlen(val) > 0) strncpy(whatsapp_app, val, bufsize);
+    if (strlen(val) > 0) { strncpy(whatsapp_app, val, bufsize - 1); whatsapp_app[bufsize - 1] = '\0'; }
     free(val);
 
     val = json_get(buf, "business_app");
-    if (strlen(val) > 0) strncpy(business_app, val, bufsize);
+    if (strlen(val) > 0) { strncpy(business_app, val, bufsize - 1); business_app[bufsize - 1] = '\0'; }
     free(val);
 
     return 1;
+}
+
+// Load app names, preferring the stable user config dir, then falling back to a
+// config.json next to the binary (legacy manual installs). Homebrew wipes the
+// Cellar on upgrade, so the binary's directory is not a safe place for config.
+// Returns 1 if a config file was found, 0 if defaults were used.
+int load_config(const char *argv0, char *whatsapp_app, char *business_app, size_t bufsize) {
+    // Default values
+    strncpy(whatsapp_app, "WhatsApp", bufsize - 1);
+    whatsapp_app[bufsize - 1] = '\0';
+    strncpy(business_app, "WhatsApp Business", bufsize - 1);
+    business_app[bufsize - 1] = '\0';
+
+    char config_path[2048];
+
+    // 1. ~/.config/whatsapp-chooser/config.json (Homebrew, upgrade-safe)
+    const char *home = getenv("HOME");
+    if (home && *home) {
+        snprintf(config_path, sizeof(config_path), "%s/.config/whatsapp-chooser/config.json", home);
+        if (parse_config_file(config_path, whatsapp_app, business_app, bufsize)) return 1;
+    }
+
+    // 2. config.json next to the binary (legacy manual install)
+    char exe_dir[2048];
+    strncpy(exe_dir, argv0, sizeof(exe_dir) - 1);
+    exe_dir[sizeof(exe_dir) - 1] = '\0';
+    char *dir = dirname(exe_dir);
+    snprintf(config_path, sizeof(config_path), "%s/config.json", dir);
+    return parse_config_file(config_path, whatsapp_app, business_app, bufsize);
 }
 
 void send_response(const char *json) {

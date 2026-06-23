@@ -1,0 +1,169 @@
+#!/bin/bash
+#
+# whatsapp-chooser-host — manage the WhatsApp Chooser native messaging host.
+#
+# Installed by the Homebrew formula. Lets a user configure their WhatsApp app
+# names and register/unregister the native host with Google Chrome, without
+# editing files by hand.
+#
+# Subcommands:
+#   configure   Set the names of your WhatsApp apps
+#   register    Register the native host with Google Chrome
+#   unregister  Remove the native host registration from Chrome
+#   status      Show current configuration and registration state
+#   help        Show this help
+#
+set -euo pipefail
+
+MANIFEST_NAME="com.whatsapp.chooser"
+# Official Chrome Web Store extension ID (same for everyone who installs from the store).
+STORE_EXTENSION_ID="fcpdhjmkmoodeapmnfbiofoibpklaicn"
+
+CONFIG_DIR="$HOME/.config/whatsapp-chooser"
+CONFIG_FILE="$CONFIG_DIR/config.json"
+
+CHROME_NM_DIR="$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts"
+MANIFEST_FILE="$CHROME_NM_DIR/$MANIFEST_NAME.json"
+
+# Stable, upgrade-proof path to the compiled host. The Homebrew "opt" prefix
+# always points at the currently linked version, so the manifest never goes stale.
+host_binary() {
+  local prefix
+  if prefix="$(brew --prefix whatsapp-chooser-host 2>/dev/null)" && [ -n "$prefix" ]; then
+    echo "$prefix/libexec/host"
+  else
+    # Fallback for a non-Homebrew layout (script in bin/, binary in ../libexec/).
+    echo "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/libexec/host"
+  fi
+}
+
+cmd_configure() {
+  local wa="" biz=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --whatsapp) wa="${2:-}"; shift 2 ;;
+      --business) biz="${2:-}"; shift 2 ;;
+      *) echo "Unknown option: $1" >&2; exit 1 ;;
+    esac
+  done
+
+  if [ -z "$wa" ]; then
+    printf 'Name of your WhatsApp app (as it appears in /Applications) [WhatsApp]: '
+    read -r wa
+    wa="${wa:-WhatsApp}"
+  fi
+  if [ -z "$biz" ]; then
+    printf 'Name of your WhatsApp Business app [WhatsApp Business]: '
+    read -r biz
+    biz="${biz:-WhatsApp Business}"
+  fi
+
+  mkdir -p "$CONFIG_DIR"
+  cat > "$CONFIG_FILE" <<EOF
+{
+  "whatsapp_app": "$wa",
+  "business_app": "$biz"
+}
+EOF
+  echo "Saved config to $CONFIG_FILE"
+  echo "  WhatsApp:          $wa"
+  echo "  WhatsApp Business: $biz"
+}
+
+cmd_register() {
+  local extra="${1:-}"
+  local bin
+  bin="$(host_binary)"
+  if [ ! -x "$bin" ]; then
+    echo "Error: host binary not found at $bin" >&2
+    echo "Try: brew reinstall whatsapp-chooser-host" >&2
+    exit 1
+  fi
+
+  local origins="    \"chrome-extension://$STORE_EXTENSION_ID/\""
+  if [ -n "$extra" ] && [ "$extra" != "$STORE_EXTENSION_ID" ]; then
+    origins="$origins,
+    \"chrome-extension://$extra/\""
+  fi
+
+  mkdir -p "$CHROME_NM_DIR"
+  cat > "$MANIFEST_FILE" <<EOF
+{
+  "name": "$MANIFEST_NAME",
+  "description": "WhatsApp Chooser - opens WhatsApp or WhatsApp Business",
+  "path": "$bin",
+  "type": "stdio",
+  "allowed_origins": [
+$origins
+  ]
+}
+EOF
+  echo "Registered native host with Chrome:"
+  echo "  Manifest: $MANIFEST_FILE"
+  echo "  Host:     $bin"
+  echo "  Store ID: $STORE_EXTENSION_ID"
+  [ -n "$extra" ] && echo "  Extra ID: $extra"
+  echo ""
+  echo "Quit Chrome completely (Cmd+Q) and reopen it to activate."
+}
+
+cmd_unregister() {
+  if [ -f "$MANIFEST_FILE" ]; then
+    rm -f "$MANIFEST_FILE"
+    echo "Removed $MANIFEST_FILE"
+  else
+    echo "Nothing to remove ($MANIFEST_FILE not found)."
+  fi
+}
+
+cmd_status() {
+  local bin
+  bin="$(host_binary)"
+  echo "Host binary:     $bin"
+  if [ -x "$bin" ]; then echo "  -> exists, executable"; else echo "  -> MISSING"; fi
+  echo ""
+  echo "Config file:     $CONFIG_FILE"
+  if [ -f "$CONFIG_FILE" ]; then
+    sed 's/^/  /' "$CONFIG_FILE"
+  else
+    echo "  -> not set (defaults: WhatsApp / WhatsApp Business)"
+  fi
+  echo ""
+  echo "Chrome manifest: $MANIFEST_FILE"
+  if [ -f "$MANIFEST_FILE" ]; then
+    echo "  -> registered"
+  else
+    echo "  -> NOT registered (run: whatsapp-chooser-host register)"
+  fi
+}
+
+usage() {
+  cat <<EOF
+whatsapp-chooser-host — manage the WhatsApp Chooser native messaging host
+
+Usage:
+  whatsapp-chooser-host configure [--whatsapp NAME --business NAME]
+  whatsapp-chooser-host register [EXTENSION_ID]
+  whatsapp-chooser-host unregister
+  whatsapp-chooser-host status
+  whatsapp-chooser-host help
+
+After 'register', quit Chrome (Cmd+Q) and reopen it.
+You also need the "WhatsApp Chooser" extension from the Chrome Web Store.
+EOF
+}
+
+main() {
+  local cmd="${1:-help}"
+  shift || true
+  case "$cmd" in
+    configure)      cmd_configure "$@" ;;
+    register)       cmd_register "$@" ;;
+    unregister)     cmd_unregister "$@" ;;
+    status)         cmd_status "$@" ;;
+    help|-h|--help) usage ;;
+    *) echo "Unknown command: $cmd" >&2; echo ""; usage; exit 1 ;;
+  esac
+}
+
+main "$@"
