@@ -60,6 +60,19 @@ fi
 chmod +x "$HOST_BIN"
 xattr -cr "$HOST_BIN" 2>/dev/null || true
 
+# Install the host + config into a stable, move-proof location. The Chrome
+# manifest points HERE, not into the project folder, so reorganizing, renaming,
+# or even deleting the project folder later never breaks the registration.
+INSTALL_DIR="$HOME/Library/Application Support/whatsapp-chooser"
+CONFIG_DIR="$HOME/.config/whatsapp-chooser"
+mkdir -p "$INSTALL_DIR" "$CONFIG_DIR"
+cp "$HOST_BIN" "$INSTALL_DIR/host"
+chmod +x "$INSTALL_DIR/host"
+xattr -cr "$INSTALL_DIR/host" 2>/dev/null || true
+# host.c reads ~/.config/whatsapp-chooser/config.json first, so keep it there too.
+cp "$CONFIG_FILE" "$CONFIG_DIR/config.json"
+INSTALLED_HOST="$INSTALL_DIR/host"
+
 # Create target directory if it doesn't exist
 mkdir -p "$TARGET_DIR"
 
@@ -75,7 +88,7 @@ cat > "$TARGET_DIR/$MANIFEST_NAME.json" <<EOF
 {
   "name": "$MANIFEST_NAME",
   "description": "WhatsApp Chooser - opens WhatsApp or WhatsApp Business",
-  "path": "$HOST_BIN",
+  "path": "$INSTALLED_HOST",
   "type": "stdio",
   "allowed_origins": [
 $ALLOWED_ORIGINS
@@ -87,7 +100,8 @@ echo ""
 echo "  Installazione completata!"
 echo ""
 echo "  Manifest:    $TARGET_DIR/$MANIFEST_NAME.json"
-echo "  Host:        $HOST_BIN"
+echo "  Host:        $INSTALLED_HOST"
+echo "  Config:      $CONFIG_DIR/config.json"
 echo "  Store ID:    $STORE_EXTENSION_ID"
 if [ -n "$EXTRA_EXTENSION_ID" ] && [ "$EXTRA_EXTENSION_ID" != "$STORE_EXTENSION_ID" ]; then
   echo "  Extra ID:    $EXTRA_EXTENSION_ID"
