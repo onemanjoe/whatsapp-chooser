@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <libgen.h>
+#include <spawn.h>
+#include <sys/wait.h>
 
 // Simple JSON string value extractor
 // Finds "key":"value" and returns a copy of value
@@ -148,10 +150,21 @@ int main(int argc, char *argv[]) {
         snprintf(wa_url, sizeof(wa_url), "whatsapp://send");
     }
 
-    // Build and execute open command
-    char cmd[4096];
-    snprintf(cmd, sizeof(cmd), "open -a '%s' '%s'", app_name, wa_url);
-    int result = system(cmd);
+    // Launch the app with an explicit argument vector via posix_spawn so the
+    // untrusted URL (it embeds attacker-controllable message text) is passed as a
+    // single literal argument and never parsed by a shell. Building a string for
+    // system() here let a single quote in the text break out of the quoting and
+    // run arbitrary commands; posix_spawn removes the shell from the path entirely.
+    extern char **environ;
+    char *const open_argv[] = { "open", "-a", (char *)app_name, wa_url, NULL };
+    pid_t pid;
+    int result = -1;
+    if (posix_spawn(&pid, "/usr/bin/open", NULL, NULL, open_argv, environ) == 0) {
+        int status;
+        if (waitpid(pid, &status, 0) == pid && WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+            result = 0;
+        }
+    }
 
     if (result == 0) {
         send_response("{\"success\":true}");
