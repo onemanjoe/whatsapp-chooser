@@ -57,18 +57,24 @@ PLIST
 codesign --force --sign - "$PROBE" >/dev/null 2>&1
 
 # --- throwaway HOME: the host reads ~/.config/whatsapp-chooser/config.json first.
-# Both buttons go to the stand-in app.
+# Both buttons go to the stand-in app; only Business gets its own URL base, so
+# the WhatsApp button also covers the default whatsapp://send base.
 # whatsapp_app comes first in plain form on purpose: if parsing ever broke, the
 # host would fall back to the real "WhatsApp" app. The rest is written the way a
-# person might edit it: a long comment that pushes the next key past the first
-# 4 KB, tabs around the colon.
+# person might edit it: a long comment that pushes the keys past the first 4 KB,
+# tabs and a line break around the colons.
 export HOME="$WORK/home"
 mkdir -p "$HOME/.config/whatsapp-chooser"
-{
-  printf '{\n  "whatsapp_app": "%s",\n' "$PROBE"
-  printf '  "_comment": "%s",\n' "$(printf 'x%.0s' $(seq 1 5000))"
-  printf '  "business_app"\t:\n    "%s"\n}\n' "$PROBE"
-} > "$HOME/.config/whatsapp-chooser/config.json"
+write_config() { # [whatsapp_url]
+  {
+    printf '{\n  "whatsapp_app": "%s",\n' "$PROBE"
+    printf '  "_comment": "%s",\n' "$(printf 'x%.0s' $(seq 1 5000))"
+    printf '  "business_app"\t:\t"%s",\n' "$PROBE"
+    [ -n "${1:-}" ] && printf '  "whatsapp_url": "%s",\n' "$1"
+    printf '  "business_url" :\n    "sup://send?account=business"\n}\n'
+  } > "$HOME/.config/whatsapp-chooser/config.json"
+}
+write_config
 
 # One JSON \u escape, built at run time so no editor or tool can turn it into
 # the character itself.
@@ -115,20 +121,20 @@ check() { # name expected actual
 # a variable first: macOS bash 3.2 brace-expands "{...,...}" when it sits in a
 # "$(...)" that is itself an argument.
 
-check "WhatsApp button opens whatsapp://send with phone and text" \
+check "Business button uses its configured URL base" \
+  "sup://send?account=business&phone=393331234567&text=Ciao%20Marco" \
+  "$(received_for '{"app":"WhatsApp Business","phone":"393331234567","text":"Ciao Marco"}')"
+
+check "WhatsApp button keeps the default whatsapp:// base" \
   "whatsapp://send?phone=393331234567&text=Ciao%20Marco" \
   "$(received_for '{"app":"WhatsApp","phone":"393331234567","text":"Ciao Marco"}')"
-
-check "Business button opens its own app (config key past 4 KB, tab and line break)" \
-  "whatsapp://send?phone=393331234567&text=Ciao%20Marco" \
-  "$(received_for '{"app":"WhatsApp Business","phone":"393331234567","text":"Ciao Marco"}')"
 
 # Escapes as Chrome writes them: \" \n and \uXXXX for 1-, 2- and 3-byte UTF-8, a
 # surrogate pair, a lone surrogate (replacement character), plus raw UTF-8.
 esc_json='{"app":"WhatsApp Business","phone":"393331234567","text":"He said \"hi\" '"$(u 003C)"'3\nok è '"$(u 00e8)$(u 20ac)$(u d83d)$(u de00)$(u d800)"'x"}'
 esc_received="$(received_for "$esc_json")"
 check "JSON escapes are decoded, then everything is percent-encoded" \
-  "whatsapp://send?phone=393331234567&text=He%20said%20%22hi%22%20%3C3%0Aok%20%C3%A8%20%C3%A8%E2%82%AC%F0%9F%98%80%EF%BF%BDx" \
+  "sup://send?account=business&phone=393331234567&text=He%20said%20%22hi%22%20%3C3%0Aok%20%C3%A8%20%C3%A8%E2%82%AC%F0%9F%98%80%EF%BF%BDx" \
   "$esc_received"
 
 nul_json='{"app":"WhatsApp","phone":"1","text":"A'"$(u 0000)"'B"}'
@@ -152,9 +158,13 @@ check "more than 15 digits is not a phone number" \
   "whatsapp://send?text=Hi" \
   "$(received_for '{"app":"WhatsApp","phone":"1234567890123456","text":"Hi"}')"
 
-check "no phone and no text: just whatsapp://send" \
-  "whatsapp://send" \
+check "no phone and no text: just the base" \
+  "sup://send?account=business" \
   "$(received_for '{"app":"WhatsApp Business","phone":"","text":""}')"
+
+check "no phone and no text on the default base" \
+  "whatsapp://send" \
+  "$(received_for '{"app":"WhatsApp","phone":"","text":""}')"
 
 # Shell injection regression (fixed 2026-07-10): a quote in the text must never
 # reach a shell.
@@ -170,12 +180,19 @@ long_text="$(printf 'a%.0s' $(seq 1 6000))"
 long_json="{\"app\":\"WhatsApp Business\",\"phone\":\"$long_phone\",\"text\":\"$long_text\"}"
 long_received="$(received_for "$long_json")"
 check "very long values: no crash, the text arrives whole, the bogus number is dropped" \
-  "whatsapp://send?text=$long_text" \
+  "sup://send?account=business&text=$long_text" \
   "$long_received"
 
 check "unknown app is refused" \
   '{"success":false,"error":"Unknown app"}' \
   "$(send '{"app":"Telegram","phone":"1","text":""}')"
+
+# A URL base starting with "-" must reach `open` as a URL, never as options:
+# "-g..." would otherwise be parsed as flags and open would still exit 0.
+write_config "-gsup://send"
+check "a URL base starting with - is not read as options of open" \
+  '{"success":false,"error":"Failed to open app"}' \
+  "$(send '{"app":"WhatsApp","phone":"1","text":""}')"
 
 echo
 [ "$fail" -eq 0 ] && echo "ALL HOST TESTS PASS" || echo "SOME HOST TESTS FAIL"

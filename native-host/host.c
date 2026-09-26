@@ -166,12 +166,13 @@ char* normalize_phone(const char *p) {
     return d;
 }
 
-// The URL handed to the app: whatsapp://send plus the phone and text as query
-// parameters.
-char* build_url(const char *phone, const char *text) {
+// The URL handed to the app: the button's URL base (default whatsapp://send)
+// plus the phone and text as query parameters. A base that already has a query,
+// e.g. "sup://send?account=business", gets them appended with "&".
+char* build_url(const char *base, const char *phone, const char *text) {
     sbuf url = {0};
-    sb_puts(&url, "whatsapp://send");
-    char sep = '?';
+    sb_puts(&url, base);
+    char sep = strchr(base, '?') ? '&' : '?';
     if (*phone) {
         sb_putc(&url, sep);
         sb_puts(&url, "phone=");
@@ -186,9 +187,13 @@ char* build_url(const char *phone, const char *text) {
     return url.buf;
 }
 
-// What each button opens: the app name (or path) handed to `open -a`.
+// What each button opens: the app (name or path, for `open -a`) and the URL
+// base handed to it. The URL bases are optional in config.json; they let a
+// button target an app with its own URL scheme, e.g. two accounts in one app:
+//   "business_app": "Sup", "business_url": "sup://send?account=business"
 typedef struct {
     char *whatsapp_app, *business_app;
+    char *whatsapp_url, *business_url;
 } config;
 
 // Replaces *field with the config value for `key`, when present and non-empty.
@@ -216,6 +221,8 @@ int parse_config_file(const char *path, config *cfg) {
 
     set_from(buf, "whatsapp_app", &cfg->whatsapp_app);
     set_from(buf, "business_app", &cfg->business_app);
+    set_from(buf, "whatsapp_url", &cfg->whatsapp_url);
+    set_from(buf, "business_url", &cfg->business_url);
     return 1;
 }
 
@@ -227,6 +234,8 @@ int load_config(const char *argv0, config *cfg) {
     // Default values
     cfg->whatsapp_app = strdup("WhatsApp");
     cfg->business_app = strdup("WhatsApp Business");
+    cfg->whatsapp_url = strdup("whatsapp://send");
+    cfg->business_url = strdup("whatsapp://send");
 
     char config_path[2048];
 
@@ -254,7 +263,7 @@ void send_response(const char *json) {
 }
 
 int main(int argc, char *argv[]) {
-    // Load app names from config
+    // Load app names and URL bases from config
     config cfg;
     load_config(argv[0], &cfg);
 
@@ -286,12 +295,15 @@ int main(int argc, char *argv[]) {
     free(raw_phone);
     free(msg);
 
-    // Map app name from config
+    // Map the button to an app and URL base from config
     const char *app_name = NULL;
+    const char *base = NULL;
     if (strcmp(app, "WhatsApp") == 0) {
         app_name = cfg.whatsapp_app;
+        base = cfg.whatsapp_url;
     } else if (strcmp(app, "WhatsApp Business") == 0) {
         app_name = cfg.business_app;
+        base = cfg.business_url;
     }
 
     if (!app_name) {
@@ -300,15 +312,15 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    char *wa_url = build_url(phone, text);
+    char *wa_url = build_url(base, phone, text);
 
     // Launch the app with an explicit argument vector via posix_spawn so the
     // untrusted URL (it embeds attacker-controllable message text) is passed as a
     // single literal argument and never parsed by a shell. Building a string for
     // system() here let a single quote in the text break out of the quoting and
     // run arbitrary commands; posix_spawn removes the shell from the path entirely.
-    // "--" ends open's options: whatever the URL holds, it is never read as
-    // flags (open -R, -g and friends would exit 0 without opening anything).
+    // "--" ends open's options, so a URL starting with "-" can never be read as
+    // flags (open -R, -g and friends would still exit 0 without opening it).
     extern char **environ;
     char *const open_argv[] = { "open", "-a", (char *)app_name, "--", wa_url, NULL };
     pid_t pid;
