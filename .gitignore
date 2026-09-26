@@ -1,3 +1,4 @@
 native-host/host
 native-host/config.json
 .DS_Store
+native-host/.backup-*/
